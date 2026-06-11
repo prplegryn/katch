@@ -9,6 +9,11 @@ android {
     namespace = "io.github.prplegryn.katch"
     compileSdk = 36
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
     defaultConfig {
         applicationId = "io.github.prplegryn.katch"
         minSdk = 24
@@ -64,6 +69,10 @@ android {
             )
         }
     }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 chaquopy {
