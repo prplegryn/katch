@@ -14,16 +14,16 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
-import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.using
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,7 +48,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.ripple.ripple
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -198,7 +197,7 @@ private fun tabTransform(initial: AppTab, target: AppTab): ContentTransform {
             animationSpec = tween(220, easing = FastOutSlowInEasing),
             targetOffsetX = { -it / 6 * direction },
         ) + fadeOut(tween(160)),
-    ).using(SizeTransform(clip = false))
+    )
 }
 
 @Composable
@@ -230,7 +229,7 @@ private fun BottomDock(selected: AppTab, onSelect: (AppTab) -> Unit) {
                     .background(if (active) colors.accent.copy(alpha = 0.16f) else Color.Transparent)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(color = colors.accent.copy(alpha = 0.20f)),
+                        indication = LocalIndication.current,
                         onClick = { onSelect(tab) },
                     ),
                 horizontalArrangement = Arrangement.Center,
@@ -586,7 +585,7 @@ private fun FormatCard(
             )
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(color = colors.accent.copy(alpha = 0.18f)),
+                indication = LocalIndication.current,
                 onClick = onSelect,
             )
             .padding(16.dp),
@@ -893,7 +892,7 @@ private fun SegmentedTheme(mode: ThemeMode, onChange: (ThemeMode) -> Unit) {
                     .background(if (selected) colors.surfaceStrong else Color.Transparent)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
-                        indication = ripple(color = colors.accent.copy(alpha = 0.18f)),
+                        indication = LocalIndication.current,
                         onClick = { onChange(item) },
                     ),
                 contentAlignment = Alignment.Center,

@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +22,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -36,7 +38,6 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.ripple.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -94,7 +95,7 @@ fun AkText(
         modifier = modifier,
         maxLines = maxLines,
         overflow = overflow,
-        style = style.copy(color = color, textAlign = textAlign),
+        style = style.copy(color = color, textAlign = textAlign ?: TextAlign.Unspecified),
     )
 }
 
@@ -104,7 +105,7 @@ fun GlassCard(
     radius: Dp = 28.dp,
     padding: Dp = 18.dp,
     borderAlpha: Float = 1f,
-    content: @Composable Column.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = AkTheme.colors
     Column(
@@ -149,7 +150,7 @@ fun ActionButton(
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
-                indication = ripple(color = contentColor.copy(alpha = 0.28f)),
+                indication = LocalIndication.current,
                 onClick = onClick,
             )
             .padding(horizontal = 18.dp, vertical = 13.dp),
@@ -182,7 +183,7 @@ fun IconButton(
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = ripple(color = colors.accent.copy(alpha = 0.22f)),
+                indication = LocalIndication.current,
                 onClickLabel = contentDescription,
                 onClick = onClick,
             ),
@@ -214,7 +215,7 @@ fun Pill(
     } else {
         Modifier.clickable(
             interactionSource = interactionSource,
-            indication = ripple(color = colors.accent.copy(alpha = 0.22f)),
+            indication = LocalIndication.current,
             onClick = onClick,
         )
     }
