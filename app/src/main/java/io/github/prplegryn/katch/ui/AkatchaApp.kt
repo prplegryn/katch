@@ -12,10 +12,8 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -48,7 +46,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -159,29 +156,27 @@ private data class AppActions(
 @Composable
 private fun AppShell(state: AppUiState, actions: AppActions) {
     val colors = AkTheme.colors
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(colors.backgroundBrush),
+            .background(colors.background),
     ) {
-        FloatingOrbs(Modifier.fillMaxSize())
-        Column(Modifier.fillMaxSize()) {
-            AnimatedContent(
-                targetState = state.tab,
-                transitionSpec = { tabTransform(initialState, targetState) },
-                label = "screen",
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-            ) { tab ->
-                when (tab) {
-                    AppTab.Home -> HomeScreen(state = state, actions = actions)
-                    AppTab.Browser -> BrowserScreen(state = state, actions = actions)
-                    AppTab.Settings -> SettingsScreen(state = state, actions = actions)
-                }
+        AppHeader(state = state)
+        AnimatedContent(
+            targetState = state.tab,
+            transitionSpec = { tabTransform(initialState, targetState) },
+            label = "screen",
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+        ) { tab ->
+            when (tab) {
+                AppTab.Home -> HomeScreen(state = state, actions = actions)
+                AppTab.Browser -> BrowserScreen(state = state, actions = actions)
+                AppTab.Settings -> SettingsScreen(state = state, actions = actions)
             }
-            BottomDock(selected = state.tab, onSelect = actions.openTab)
         }
+        BottomNavigation(selected = state.tab, onSelect = actions.openTab)
     }
 }
 
@@ -189,62 +184,111 @@ private fun tabTransform(initial: AppTab, target: AppTab): ContentTransform {
     val direction = if (target.ordinal > initial.ordinal) 1 else -1
     return (
         slideInHorizontally(
-            animationSpec = tween(260, easing = FastOutSlowInEasing),
-            initialOffsetX = { it / 4 * direction },
-        ) + fadeIn(tween(180))
+            animationSpec = tween(220, easing = FastOutSlowInEasing),
+            initialOffsetX = { it / 5 * direction },
+        ) + fadeIn(tween(160))
         ).togetherWith(
         slideOutHorizontally(
-            animationSpec = tween(220, easing = FastOutSlowInEasing),
-            targetOffsetX = { -it / 6 * direction },
-        ) + fadeOut(tween(160)),
+            animationSpec = tween(180, easing = FastOutSlowInEasing),
+            targetOffsetX = { -it / 7 * direction },
+        ) + fadeOut(tween(140)),
     )
 }
 
 @Composable
-private fun BottomDock(selected: AppTab, onSelect: (AppTab) -> Unit) {
+private fun AppHeader(state: AppUiState) {
+    val colors = AkTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.nav)
+            .statusBarsPadding(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 18.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f)) {
+                AkText(text = "Akatcha", style = AkTheme.type.appTitle, color = colors.textPrimary)
+                AkText(
+                    text = screenLabel(state.tab),
+                    style = AkTheme.type.tiny,
+                    color = colors.textMuted,
+                    maxLines = 1,
+                )
+            }
+            StatusBadge(
+                text = stageLabel(state.stage),
+                active = state.stage == JobStage.Ready || state.stage == JobStage.Done,
+                warning = state.stage == JobStage.Extracting || state.stage == JobStage.Downloading,
+            )
+        }
+        DividerLine()
+    }
+}
+
+private fun screenLabel(tab: AppTab): String = when (tab) {
+    AppTab.Home -> "下载任务"
+    AppTab.Browser -> "登录与 Cookie"
+    AppTab.Settings -> "设置"
+}
+
+private fun stageLabel(stage: JobStage): String = when (stage) {
+    JobStage.Idle -> "待处理"
+    JobStage.Extracting -> "解析中"
+    JobStage.Ready -> "可下载"
+    JobStage.Downloading -> "下载中"
+    JobStage.Done -> "已完成"
+    JobStage.Error -> "需处理"
+}
+
+@Composable
+private fun BottomNavigation(selected: AppTab, onSelect: (AppTab) -> Unit) {
     val colors = AkTheme.colors
     val tabs = listOf(
-        Triple(AppTab.Home, Glyph.Home, "下载"),
+        Triple(AppTab.Home, Glyph.Home, "任务"),
         Triple(AppTab.Browser, Glyph.Browser, "登录"),
         Triple(AppTab.Settings, Glyph.Settings, "设置"),
     )
-    Row(
+    Column(
         modifier = Modifier
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 14.dp)
             .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(colors.surfaceStrong)
-            .border(1.dp, colors.border, RoundedCornerShape(28.dp))
-            .padding(6.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+            .background(colors.nav)
+            .navigationBarsPadding(),
     ) {
-        tabs.forEach { (tab, glyph, label) ->
-            val active = selected == tab
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(if (active) colors.accent.copy(alpha = 0.16f) else Color.Transparent)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = LocalIndication.current,
-                        onClick = { onSelect(tab) },
-                    ),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                GlyphIcon(
-                    glyph = glyph,
-                    color = if (active) colors.accent else colors.textMuted,
-                    size = 20.dp,
-                )
-                AnimatedVisibility(visible = active) {
-                    Row {
-                        Spacer(Modifier.width(7.dp))
-                        AkText(text = label, style = AkTheme.type.label, color = colors.accent)
-                    }
+        DividerLine()
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            tabs.forEach { (tab, glyph, label) ->
+                val active = selected == tab
+                Row(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(46.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (active) colors.selected else Color.Transparent)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = LocalIndication.current,
+                            onClick = { onSelect(tab) },
+                        ),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    GlyphIcon(glyph = glyph, color = if (active) colors.accent else colors.textMuted, size = 20.dp)
+                    Spacer(Modifier.width(8.dp))
+                    AkText(
+                        text = label,
+                        style = AkTheme.type.label,
+                        color = if (active) colors.accent else colors.textSecondary,
+                        maxLines = 1,
+                    )
                 }
             }
         }
@@ -254,117 +298,99 @@ private fun BottomDock(selected: AppTab, onSelect: (AppTab) -> Unit) {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun HomeScreen(state: AppUiState, actions: AppActions) {
-    val colors = AkTheme.colors
-    val clipboard = LocalClipboardManager.current
     val formats = state.videoInfo?.formats.orEmpty()
     BoxWithConstraints(Modifier.fillMaxSize()) {
-        val pagePadding = if (maxWidth > 620.dp) AkTheme.spacing.pageLarge else AkTheme.spacing.page
+        val pagePadding = if (maxWidth > 720.dp) AkTheme.spacing.pageLarge else AkTheme.spacing.page
+        val wide = maxWidth > 780.dp
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .statusBarsPadding(),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = pagePadding,
                 end = pagePadding,
                 top = 18.dp,
                 bottom = 18.dp,
             ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             item {
-                HeaderBlock(
-                    eyebrow = "AKATCHA / XHS FORMAT SCANNER",
-                    title = "把小红书链接拆成完整格式清单",
-                    subtitle = "输入或粘贴分享文本，自动提取链接；使用已保存 Cookie 调用 yt-dlp，并额外扫描页面源码，不合并、不去重。",
+                PageHeading(
+                    title = "下载任务",
+                    meta = environmentSummary(state),
+                    modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
                 )
             }
             item {
-                GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth()) {
-                    AkTextField(
-                        value = state.inputText,
-                        onValueChange = actions.updateInput,
-                        label = "分享文本",
-                        placeholder = "例：牙牙大屏小舞蹈 http://xhslink.com/o/AOASQXmnp3X 复制这段，去【小红书】发现更多好内容~",
-                        minLines = 5,
-                    )
-                    Spacer(Modifier.height(14.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        ActionButton(
-                            label = "粘贴",
-                            glyph = Glyph.Spark,
-                            secondary = true,
-                            onClick = {
-                                clipboard.getText()?.text?.let(actions.updateInput)
-                            },
-                            modifier = Modifier.weight(0.8f),
+                if (wide) {
+                    Row(
+                        modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        InputPanel(
+                            state = state,
+                            actions = actions,
+                            modifier = Modifier.weight(1.35f),
                         )
-                        ActionButton(
-                            label = if (state.stage == JobStage.Extracting) "探测中" else "解析格式",
-                            glyph = Glyph.Search,
-                            enabled = state.stage != JobStage.Extracting && state.stage != JobStage.Downloading,
-                            onClick = actions.analyze,
-                            modifier = Modifier.weight(1.2f),
+                        EnvironmentPanel(
+                            state = state,
+                            actions = actions,
+                            modifier = Modifier.weight(1f),
                         )
                     }
-                    Spacer(Modifier.height(12.dp))
-                    state.extractedUrl?.let { url ->
-                        Pill(text = url, selected = true, modifier = Modifier.fillMaxWidth())
+                } else {
+                    Column(
+                        modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        InputPanel(state = state, actions = actions)
+                        EnvironmentPanel(state = state, actions = actions)
                     }
                 }
             }
             item {
-                EnvironmentRow(state = state, actions = actions)
-            }
-            item {
-                AnimatedStatus(visible = true, text = state.message, modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth())
+                AnimatedStatus(
+                    visible = true,
+                    text = state.message,
+                    modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
+                )
             }
             if (state.stage == JobStage.Extracting) {
                 item {
-                    LoadingCard(text = "正在保持全部重复格式并扩展页面源码媒体链接")
+                    ProcessPanel(
+                        title = "解析队列",
+                        body = "yt-dlp / 页面源码 / Manifest",
+                        progress = 0.48f,
+                        modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
+                    )
                 }
             }
             if (state.stage == JobStage.Downloading) {
                 item {
-                    DownloadProgressCard(state = state)
+                    DownloadProgressPanel(
+                        state = state,
+                        modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
+                    )
                 }
             }
             state.videoInfo?.let { info ->
                 item {
-                    GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth()) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            PosterTile(title = info.title)
-                            Spacer(Modifier.width(14.dp))
-                            Column(Modifier.weight(1f)) {
-                                AkText(
-                                    text = info.title,
-                                    style = AkTheme.type.section,
-                                    color = colors.textPrimary,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Spacer(Modifier.height(6.dp))
-                                AkText(
-                                    text = "${info.formatCount} 个格式条目 / ${info.extractor.ifBlank { "yt-dlp" }}",
-                                    style = AkTheme.type.body,
-                                    color = colors.textSecondary,
-                                )
-                            }
-                        }
-                    }
+                    ResultSummary(
+                        title = info.title,
+                        extractor = info.extractor,
+                        count = info.formatCount,
+                        durationSeconds = info.durationSeconds,
+                        modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
+                    )
                 }
                 item {
-                    Row(
-                        modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        AkText(text = "格式列表", style = AkTheme.type.section, color = colors.textPrimary)
-                        AkText(text = "保留重复项", style = AkTheme.type.label, color = colors.textMuted)
-                    }
+                    SectionTitle(
+                        title = "格式清单",
+                        meta = "${formats.size} 条，按原始顺序",
+                        modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
+                    )
                 }
                 itemsIndexed(formats, key = { index, item -> "${item.uid}-$index" }) { index, item ->
-                    FormatCard(
+                    FormatRow(
                         index = index,
                         format = item,
                         selected = item.uid == state.selectedFormatUid,
@@ -372,22 +398,20 @@ private fun HomeScreen(state: AppUiState, actions: AppActions) {
                         onDownload = { actions.download(item) },
                         enabled = state.stage != JobStage.Downloading && state.stage != JobStage.Extracting,
                         modifier = Modifier
-                            .widthIn(max = 860.dp)
+                            .widthIn(max = 940.dp)
                             .fillMaxWidth()
                             .animateItem(),
                     )
                 }
+            } ?: item {
+                EmptyResultPanel(modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth())
             }
             if (state.downloadedFiles.isNotEmpty()) {
                 item {
-                    GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth(), radius = 24.dp) {
-                        AkText(text = "已保存文件", style = AkTheme.type.section, color = colors.success)
-                        Spacer(Modifier.height(10.dp))
-                        state.downloadedFiles.forEach { file ->
-                            AkText(text = file, style = AkTheme.type.mono, color = colors.textSecondary)
-                            Spacer(Modifier.height(6.dp))
-                        }
-                    }
+                    SavedFilesPanel(
+                        files = state.downloadedFiles,
+                        modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
+                    )
                 }
             }
         }
@@ -395,142 +419,164 @@ private fun HomeScreen(state: AppUiState, actions: AppActions) {
 }
 
 @Composable
-private fun HeaderBlock(eyebrow: String, title: String, subtitle: String) {
+private fun PageHeading(title: String, meta: String, modifier: Modifier = Modifier) {
     val colors = AkTheme.colors
-    Column(Modifier.widthIn(max = 860.dp).fillMaxWidth()) {
-        Pill(text = eyebrow, selected = true)
-        Spacer(Modifier.height(14.dp))
-        AkText(text = title, style = AkTheme.type.hero, color = colors.textPrimary)
-        Spacer(Modifier.height(10.dp))
-        AkText(text = subtitle, style = AkTheme.type.body, color = colors.textSecondary)
+    Row(modifier = modifier, verticalAlignment = Alignment.Bottom) {
+        AkText(text = title, style = AkTheme.type.title, color = colors.textPrimary)
+        Spacer(Modifier.weight(1f))
+        AkText(text = meta, style = AkTheme.type.label, color = colors.textMuted, maxLines = 1)
     }
 }
 
 @Composable
-private fun EnvironmentRow(state: AppUiState, actions: AppActions) {
+private fun InputPanel(state: AppUiState, actions: AppActions, modifier: Modifier = Modifier) {
     val colors = AkTheme.colors
-    GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth(), radius = 24.dp, padding = 16.dp) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            MiniStatus(
-                glyph = Glyph.Cookie,
-                label = "Cookie",
-                value = if (state.cookiePath != null) "已保存" else "未保存",
-                active = state.cookiePath != null,
-                modifier = Modifier.weight(1f),
-            )
-            MiniStatus(
-                glyph = Glyph.Folder,
-                label = "目录",
-                value = state.settings.downloadTreeLabel
-                    ?: if (state.hasAllFilesAccess) "Akatcha" else "待授权",
-                active = state.settings.downloadTreeUri != null || state.hasAllFilesAccess,
-                modifier = Modifier.weight(1f),
-            )
-        }
+    val clipboard = LocalClipboardManager.current
+    WorkPanel(modifier = modifier) {
+        SectionTitle(title = "输入来源", meta = state.extractedUrl?.let { "已识别链接" })
+        Spacer(Modifier.height(12.dp))
+        AkTextField(
+            value = state.inputText,
+            onValueChange = actions.updateInput,
+            label = "分享文本",
+            placeholder = "粘贴小红书分享文本或 xhslink 链接",
+            minLines = 5,
+        )
         Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
             ActionButton(
-                label = "去登录页",
+                label = "粘贴",
+                glyph = Glyph.Paste,
+                tone = ActionTone.Secondary,
+                onClick = {
+                    clipboard.getText()?.text?.let(actions.updateInput)
+                },
+                modifier = Modifier.weight(0.9f),
+            )
+            ActionButton(
+                label = if (state.stage == JobStage.Extracting) "解析中" else "解析格式",
+                glyph = Glyph.Search,
+                enabled = state.stage != JobStage.Extracting && state.stage != JobStage.Downloading,
+                onClick = actions.analyze,
+                modifier = Modifier.weight(1.1f),
+            )
+        }
+        state.extractedUrl?.let { url ->
+            Spacer(Modifier.height(12.dp))
+            DividerLine()
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.Top) {
+                GlyphIcon(glyph = Glyph.Link, color = colors.accent, size = 18.dp)
+                Spacer(Modifier.width(9.dp))
+                AkText(
+                    text = url,
+                    style = AkTheme.type.mono,
+                    color = colors.textSecondary,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EnvironmentPanel(state: AppUiState, actions: AppActions, modifier: Modifier = Modifier) {
+    WorkPanel(modifier = modifier) {
+        SectionTitle(title = "环境状态")
+        Spacer(Modifier.height(10.dp))
+        EnvironmentLine(
+            glyph = Glyph.Cookie,
+            label = "Cookie",
+            value = state.cookiePath ?: "未保存",
+            ok = state.cookiePath != null,
+        )
+        DividerLine(Modifier.padding(vertical = 10.dp))
+        EnvironmentLine(
+            glyph = Glyph.Folder,
+            label = "输出目录",
+            value = state.settings.downloadTreeLabel
+                ?: if (state.hasAllFilesAccess) state.defaultDirectory else "待授权",
+            ok = state.settings.downloadTreeUri != null || state.hasAllFilesAccess,
+        )
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            ActionButton(
+                label = "登录",
                 glyph = Glyph.Browser,
-                secondary = true,
+                tone = ActionTone.Secondary,
                 onClick = { actions.openTab(AppTab.Browser) },
                 modifier = Modifier.weight(1f),
             )
             ActionButton(
-                label = if (state.hasAllFilesAccess) "目录就绪" else "授权目录",
-                glyph = Glyph.Folder,
-                secondary = state.hasAllFilesAccess,
-                onClick = if (state.hasAllFilesAccess) {
-                    {}
-                } else {
-                    actions.requestStorageAccess
-                },
+                label = if (state.hasAllFilesAccess) "目录就绪" else "授权",
+                glyph = Glyph.Lock,
+                tone = if (state.hasAllFilesAccess) ActionTone.Secondary else ActionTone.Primary,
+                enabled = !state.hasAllFilesAccess,
+                onClick = actions.requestStorageAccess,
                 modifier = Modifier.weight(1f),
             )
         }
-        if (!state.hasAllFilesAccess && state.settings.downloadTreeUri == null) {
-            Spacer(Modifier.height(10.dp))
-            AkText(
-                text = "默认路径 ${state.defaultDirectory} 需要所有文件访问权限；也可以在设置页选择 SAF 目录。",
-                style = AkTheme.type.tiny,
-                color = colors.textMuted,
-            )
-        }
     }
 }
 
 @Composable
-private fun MiniStatus(
+private fun EnvironmentLine(
     glyph: Glyph,
     label: String,
     value: String,
-    active: Boolean,
-    modifier: Modifier = Modifier,
+    ok: Boolean,
 ) {
     val colors = AkTheme.colors
-    Row(
-        modifier = modifier
-            .clip(RoundedCornerShape(18.dp))
-            .background(colors.surfaceSoft)
-            .border(1.dp, colors.border, RoundedCornerShape(18.dp))
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
-                .size(38.dp)
-                .clip(CircleShape)
-                .background(if (active) colors.accent.copy(alpha = 0.15f) else colors.surfaceStrong),
+                .size(36.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(if (ok) colors.successSoft else colors.warningSoft),
             contentAlignment = Alignment.Center,
         ) {
-            GlyphIcon(glyph = glyph, color = if (active) colors.accent else colors.textMuted, size = 19.dp)
+            GlyphIcon(glyph = glyph, color = if (ok) colors.success else colors.warning, size = 19.dp)
         }
-        Spacer(Modifier.width(10.dp))
-        Column {
-            AkText(text = label, style = AkTheme.type.tiny, color = colors.textMuted)
-            AkText(text = value, style = AkTheme.type.label, color = colors.textPrimary, maxLines = 1)
+        Spacer(Modifier.width(11.dp))
+        Column(Modifier.weight(1f)) {
+            AkText(text = label, style = AkTheme.type.label, color = colors.textPrimary)
+            AkText(
+                text = value,
+                style = AkTheme.type.tiny,
+                color = colors.textMuted,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
+        StatusBadge(text = if (ok) "就绪" else "待处理", active = ok, warning = !ok)
     }
 }
 
 @Composable
-private fun LoadingCard(text: String) {
+private fun ProcessPanel(title: String, body: String, progress: Float, modifier: Modifier = Modifier) {
     val colors = AkTheme.colors
-    val transition = androidx.compose.animation.core.rememberInfiniteTransition(label = "loader")
-    val pulse by transition.animateFloat(
-        0.55f,
-        1f,
-        animationSpec = androidx.compose.animation.core.infiniteRepeatable(
-            tween(900, easing = FastOutSlowInEasing),
-            androidx.compose.animation.core.RepeatMode.Reverse,
-        ),
-        label = "pulse",
-    )
-    GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth(), radius = 26.dp) {
+    WorkPanel(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(colors.accent.copy(alpha = 0.13f * pulse))
-                    .border(1.dp, colors.accent.copy(alpha = pulse), CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                GlyphIcon(glyph = Glyph.Search, color = colors.accent, size = 20.dp)
+            GlyphIcon(glyph = Glyph.Search, color = colors.accent, size = 21.dp)
+            Spacer(Modifier.width(10.dp))
+            Column(Modifier.weight(1f)) {
+                AkText(text = title, style = AkTheme.type.bodyStrong, color = colors.textPrimary)
+                AkText(text = body, style = AkTheme.type.tiny, color = colors.textMuted)
             }
-            Spacer(Modifier.width(14.dp))
-            AkText(text = text, style = AkTheme.type.bodyStrong, color = colors.textPrimary)
         }
+        Spacer(Modifier.height(12.dp))
+        ProgressStrip(progress = progress)
     }
 }
 
 @Composable
-private fun DownloadProgressCard(state: AppUiState) {
+private fun DownloadProgressPanel(state: AppUiState, modifier: Modifier = Modifier) {
     val colors = AkTheme.colors
     val progress = (state.progress.percent / 100.0).toFloat().coerceIn(0f, 1f)
-    GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth(), radius = 26.dp) {
+    WorkPanel(modifier = modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            GlyphIcon(glyph = Glyph.Download, color = colors.accent, size = 22.dp)
+            GlyphIcon(glyph = Glyph.Download, color = colors.accent, size = 21.dp)
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f)) {
                 AkText(
@@ -538,33 +584,84 @@ private fun DownloadProgressCard(state: AppUiState) {
                     style = AkTheme.type.bodyStrong,
                     color = colors.textPrimary,
                 )
-                Spacer(Modifier.height(8.dp))
-                ProgressStrip(progress = progress)
+                AkText(
+                    text = progressMeta(state),
+                    style = AkTheme.type.tiny,
+                    color = colors.textMuted,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        ProgressStrip(progress = progress)
+    }
+}
+
+@Composable
+private fun ResultSummary(
+    title: String,
+    extractor: String,
+    count: Int,
+    durationSeconds: Double?,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AkTheme.colors
+    WorkPanel(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(colors.selected)
+                    .border(1.dp, colors.border, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center,
+            ) {
+                GlyphIcon(glyph = Glyph.List, color = colors.accent, size = 23.dp)
+            }
+            Spacer(Modifier.width(13.dp))
+            Column(Modifier.weight(1f)) {
+                AkText(
+                    text = title.ifBlank { "未命名内容" },
+                    style = AkTheme.type.section,
+                    color = colors.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.height(4.dp))
+                AkText(
+                    text = listOfNotNull(
+                        "$count 个格式",
+                        extractor.ifBlank { "yt-dlp" },
+                        durationSeconds?.let(::durationLabel),
+                    ).joinToString(" / "),
+                    style = AkTheme.type.body,
+                    color = colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun PosterTile(title: String) {
-    Box(
-        modifier = Modifier
-            .size(72.dp)
-            .clip(RoundedCornerShape(24.dp))
-            .background(AkTheme.colors.accentBrush)
-            .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(24.dp)),
-        contentAlignment = Alignment.Center,
-    ) {
-        AkText(
-            text = title.firstOrNull()?.uppercaseChar()?.toString() ?: "A",
-            style = AkTheme.type.title,
-            color = Color.White,
-        )
+private fun EmptyResultPanel(modifier: Modifier = Modifier) {
+    val colors = AkTheme.colors
+    WorkPanel(modifier = modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            GlyphIcon(glyph = Glyph.List, color = colors.textMuted, size = 20.dp)
+            Spacer(Modifier.width(10.dp))
+            Column {
+                AkText(text = "解析结果", style = AkTheme.type.bodyStrong, color = colors.textPrimary)
+                AkText(text = "暂无格式条目", style = AkTheme.type.tiny, color = colors.textMuted)
+            }
+        }
     }
 }
 
 @Composable
-private fun FormatCard(
+private fun FormatRow(
     index: Int,
     format: MediaFormat,
     selected: Boolean,
@@ -576,30 +673,26 @@ private fun FormatCard(
     val colors = AkTheme.colors
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(if (selected) colors.surfaceStrong else colors.surface)
-            .border(
-                1.dp,
-                if (selected) colors.accent.copy(alpha = 0.78f) else colors.border,
-                RoundedCornerShape(24.dp),
-            )
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) colors.selected else colors.surface)
+            .border(1.dp, if (selected) colors.accent else colors.border, RoundedCornerShape(8.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = LocalIndication.current,
                 onClick = onSelect,
             )
-            .padding(16.dp),
+            .padding(13.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(if (selected) colors.accent.copy(alpha = 0.16f) else colors.surfaceSoft),
+                    .size(42.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (selected) colors.surfaceRaised else colors.surfaceMuted),
                 contentAlignment = Alignment.Center,
             ) {
                 AkText(
-                    text = "#${index + 1}",
+                    text = (index + 1).toString().padStart(2, '0'),
                     style = AkTheme.type.label,
                     color = if (selected) colors.accent else colors.textMuted,
                 )
@@ -608,17 +701,16 @@ private fun FormatCard(
             Column(Modifier.weight(1f)) {
                 AkText(
                     text = "${format.displayResolution} · ${format.extension ?: "media"}",
-                    style = AkTheme.type.section,
+                    style = AkTheme.type.bodyStrong,
                     color = colors.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Spacer(Modifier.height(4.dp))
                 AkText(
                     text = format.codecLine,
                     style = AkTheme.type.body,
                     color = colors.textSecondary,
-                    maxLines = 2,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -628,25 +720,66 @@ private fun FormatCard(
                 contentDescription = "下载格式",
                 onClick = onDownload,
                 enabled = enabled,
+                selected = selected,
             )
         }
-        Spacer(Modifier.height(12.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            Pill(text = format.source, selected = format.source != "yt-dlp")
-            Pill(text = format.sizeLine)
-            Pill(text = format.protocol ?: "unknown")
-        }
         Spacer(Modifier.height(10.dp))
+        DividerLine()
+        Spacer(Modifier.height(9.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
+            FormatMeta(label = "来源", value = format.source, modifier = Modifier.weight(1f))
+            FormatMeta(label = "大小", value = format.sizeLine, modifier = Modifier.weight(1f))
+            FormatMeta(label = "协议", value = format.protocol ?: "unknown", modifier = Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(8.dp))
         AkText(
             text = "format_id: ${format.formatId}",
             style = AkTheme.type.mono,
             color = colors.textMuted,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
-        format.note?.let {
-            Spacer(Modifier.height(5.dp))
+        format.note?.takeIf { it.isNotBlank() }?.let {
+            Spacer(Modifier.height(4.dp))
             AkText(text = it, style = AkTheme.type.tiny, color = colors.textMuted, maxLines = 2)
+        }
+    }
+}
+
+@Composable
+private fun FormatMeta(label: String, value: String, modifier: Modifier = Modifier) {
+    val colors = AkTheme.colors
+    Column(modifier = modifier) {
+        AkText(text = label, style = AkTheme.type.tiny, color = colors.textMuted, maxLines = 1)
+        AkText(
+            text = value,
+            style = AkTheme.type.label,
+            color = colors.textSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun SavedFilesPanel(files: List<String>, modifier: Modifier = Modifier) {
+    val colors = AkTheme.colors
+    WorkPanel(modifier = modifier) {
+        SectionTitle(title = "输出记录", meta = "${files.size} 个文件")
+        Spacer(Modifier.height(10.dp))
+        files.forEachIndexed { index, file ->
+            if (index > 0) {
+                Spacer(Modifier.height(8.dp))
+                DividerLine()
+                Spacer(Modifier.height(8.dp))
+            }
+            AkText(
+                text = file,
+                style = AkTheme.type.mono,
+                color = colors.textSecondary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -667,38 +800,44 @@ private fun BrowserScreen(state: AppUiState, actions: AppActions) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .background(colors.background),
     ) {
-        GlassCard(radius = 28.dp, padding = 14.dp, modifier = Modifier.fillMaxWidth()) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.surface),
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(glyph = Glyph.Back, contentDescription = "后退", enabled = canGoBack, onClick = { webView?.goBack() })
+                Spacer(Modifier.width(8.dp))
+                IconButton(glyph = Glyph.Refresh, contentDescription = "刷新", onClick = { webView?.reload() })
+                Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
-                    AkText(text = "PC UA 登录页", style = AkTheme.type.section, color = colors.textPrimary)
+                    AkText(text = "PC UA 登录", style = AkTheme.type.label, color = colors.textPrimary)
                     AkText(
                         text = title,
                         style = AkTheme.type.tiny,
-                        color = colors.textSecondary,
+                        color = colors.textMuted,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                IconButton(glyph = Glyph.Back, contentDescription = "后退", enabled = canGoBack, onClick = { webView?.goBack() })
-                Spacer(Modifier.width(8.dp))
-                IconButton(glyph = Glyph.Refresh, contentDescription = "刷新", onClick = { webView?.reload() })
-                Spacer(Modifier.width(8.dp))
+                Spacer(Modifier.width(10.dp))
                 ActionButton(label = "保存 Cookie", glyph = Glyph.Save, onClick = actions.saveCookies)
             }
-            Spacer(Modifier.height(12.dp))
             ProgressStrip(progress = if (loading) 0.56f else 1f)
         }
-        Spacer(Modifier.height(14.dp))
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .clip(RoundedCornerShape(28.dp))
-                .background(colors.surfaceStrong)
-                .border(1.dp, colors.border, RoundedCornerShape(28.dp)),
+                .background(colors.surfaceRaised)
+                .border(1.dp, colors.border),
         ) {
             AndroidView(
                 modifier = Modifier.fillMaxSize(),
@@ -752,11 +891,12 @@ private fun BrowserScreen(state: AppUiState, actions: AppActions) {
                 },
             )
         }
-        Spacer(Modifier.height(12.dp))
         AnimatedStatus(
             visible = true,
-            text = state.message ?: "登录后点右上角“保存 Cookie”，会生成 yt-dlp 可用的 Netscape cookie 文件。",
-            modifier = Modifier.fillMaxWidth(),
+            text = state.message ?: "Cookie 状态：${if (state.cookiePath != null) "已保存" else "未保存"}",
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
         )
     }
 
@@ -773,96 +913,127 @@ private fun SettingsScreen(state: AppUiState, actions: AppActions) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(horizontal = 18.dp, vertical = 18.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        HeaderBlock(
-            eyebrow = "SETTINGS",
-            title = "记忆 Cookie、目录与显示风格",
-            subtitle = "默认保存到用户目录 Akatcha；未授权时可用系统目录选择器指定位置。",
+        PageHeading(
+            title = "设置",
+            meta = "本机配置",
+            modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(),
         )
-        GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth()) {
-            AkText(text = "外观", style = AkTheme.type.section, color = colors.textPrimary)
-            Spacer(Modifier.height(12.dp))
-            SegmentedTheme(mode = state.settings.themeMode, onChange = actions.setThemeMode)
-        }
-        GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth()) {
-            AkText(text = "下载目录", style = AkTheme.type.section, color = colors.textPrimary)
-            Spacer(Modifier.height(8.dp))
-            AkText(
-                text = state.settings.downloadTreeLabel ?: state.defaultDirectory,
-                style = AkTheme.type.mono,
-                color = colors.textSecondary,
-            )
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                ActionButton(
-                    label = "选择目录",
-                    glyph = Glyph.Folder,
-                    onClick = actions.chooseDirectory,
-                    modifier = Modifier.weight(1f),
-                )
-                ActionButton(
-                    label = "默认 Akatcha",
-                    glyph = Glyph.Check,
-                    secondary = true,
-                    onClick = actions.clearDirectory,
-                    modifier = Modifier.weight(1f),
-                )
+        Spacer(Modifier.height(14.dp))
+        WorkPanel(modifier = Modifier.widthIn(max = 940.dp).fillMaxWidth(), padding = 0.dp) {
+            SettingsBlock(title = "外观") {
+                SegmentedTheme(mode = state.settings.themeMode, onChange = actions.setThemeMode)
             }
-            if (!state.hasAllFilesAccess && state.settings.downloadTreeUri == null) {
-                Spacer(Modifier.height(10.dp))
-                ActionButton(
-                    label = "授予所有文件访问",
-                    glyph = Glyph.Lock,
-                    secondary = true,
-                    onClick = actions.requestStorageAccess,
-                    modifier = Modifier.fillMaxWidth(),
+            DividerLine()
+            SettingsBlock(title = "输出目录") {
+                AkText(
+                    text = state.settings.downloadTreeLabel ?: state.defaultDirectory,
+                    style = AkTheme.type.mono,
+                    color = colors.textSecondary,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    ActionButton(
+                        label = "选择目录",
+                        glyph = Glyph.Folder,
+                        onClick = actions.chooseDirectory,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ActionButton(
+                        label = "默认目录",
+                        glyph = Glyph.Check,
+                        tone = ActionTone.Secondary,
+                        onClick = actions.clearDirectory,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+                if (!state.hasAllFilesAccess && state.settings.downloadTreeUri == null) {
+                    Spacer(Modifier.height(10.dp))
+                    ActionButton(
+                        label = "授予所有文件访问",
+                        glyph = Glyph.Lock,
+                        tone = ActionTone.Secondary,
+                        onClick = actions.requestStorageAccess,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
             }
-        }
-        GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth()) {
-            AkText(text = "Cookie", style = AkTheme.type.section, color = colors.textPrimary)
-            Spacer(Modifier.height(8.dp))
-            AkText(
-                text = state.cookiePath ?: "尚未保存 Cookie",
-                style = AkTheme.type.mono,
-                color = colors.textSecondary,
-            )
-            state.cookieUpdatedAt?.let {
-                Spacer(Modifier.height(6.dp))
-                AkText(text = "更新时间 ${formatTime(it)}", style = AkTheme.type.tiny, color = colors.textMuted)
-            }
-            Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                ActionButton(
-                    label = "打开登录页",
-                    glyph = Glyph.Browser,
-                    onClick = { actions.openTab(AppTab.Browser) },
-                    modifier = Modifier.weight(1f),
+            DividerLine()
+            SettingsBlock(title = "Cookie") {
+                AkText(
+                    text = state.cookiePath ?: "未保存",
+                    style = AkTheme.type.mono,
+                    color = colors.textSecondary,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                ActionButton(
-                    label = "清空 Cookie",
-                    glyph = Glyph.Close,
-                    secondary = true,
-                    onClick = actions.clearCookies,
-                    modifier = Modifier.weight(1f),
-                )
+                state.cookieUpdatedAt?.let {
+                    Spacer(Modifier.height(6.dp))
+                    AkText(text = "更新时间 ${formatTime(it)}", style = AkTheme.type.tiny, color = colors.textMuted)
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    ActionButton(
+                        label = "打开登录",
+                        glyph = Glyph.Browser,
+                        onClick = { actions.openTab(AppTab.Browser) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    ActionButton(
+                        label = "清空 Cookie",
+                        glyph = Glyph.Close,
+                        tone = ActionTone.Danger,
+                        onClick = actions.clearCookies,
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
-        }
-        GlassCard(modifier = Modifier.widthIn(max = 860.dp).fillMaxWidth()) {
-            AkText(text = "抓取策略", style = AkTheme.type.section, color = colors.textPrimary)
-            Spacer(Modifier.height(8.dp))
-            AkText(
-                text = "yt-dlp: 2026.06.09\n重复格式: 保留\n页面源码探测: mp4 / m3u8 / mpd\nUser-Agent: ${CookieExporter.DESKTOP_USER_AGENT}",
-                style = AkTheme.type.mono,
-                color = colors.textSecondary,
-            )
+            DividerLine()
+            SettingsBlock(title = "抓取参数") {
+                SettingDataLine(label = "yt-dlp", value = "2026.06.09")
+                SettingDataLine(label = "重复格式", value = "保留")
+                SettingDataLine(label = "页面源码", value = "mp4 / m3u8 / mpd")
+                SettingDataLine(label = "User-Agent", value = CookieExporter.DESKTOP_USER_AGENT)
+            }
         }
     }
+}
+
+@Composable
+private fun SettingsBlock(title: String, content: @Composable () -> Unit) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        SectionTitle(title = title)
+        Spacer(Modifier.height(12.dp))
+        content()
+    }
+}
+
+@Composable
+private fun SettingDataLine(label: String, value: String) {
+    val colors = AkTheme.colors
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+        AkText(
+            text = label,
+            style = AkTheme.type.label,
+            color = colors.textMuted,
+            modifier = Modifier.width(86.dp),
+            maxLines = 1,
+        )
+        AkText(
+            text = value,
+            style = AkTheme.type.mono,
+            color = colors.textSecondary,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Spacer(Modifier.height(8.dp))
 }
 
 @Composable
@@ -876,20 +1047,25 @@ private fun SegmentedTheme(mode: ThemeMode, onChange: (ThemeMode) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(colors.surfaceSoft)
-            .border(1.dp, colors.border, RoundedCornerShape(22.dp))
-            .padding(5.dp),
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.surfaceMuted)
+            .border(1.dp, colors.border, RoundedCornerShape(8.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         items.forEach { (item, label) ->
             val selected = mode == item
             Box(
                 modifier = Modifier
                     .weight(1f)
-                    .height(44.dp)
-                    .clip(RoundedCornerShape(17.dp))
-                    .background(if (selected) colors.surfaceStrong else Color.Transparent)
+                    .height(40.dp)
+                    .clip(RoundedCornerShape(6.dp))
+                    .background(if (selected) colors.surfaceRaised else Color.Transparent)
+                    .border(
+                        1.dp,
+                        if (selected) colors.border else Color.Transparent,
+                        RoundedCornerShape(6.dp),
+                    )
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = LocalIndication.current,
@@ -901,9 +1077,49 @@ private fun SegmentedTheme(mode: ThemeMode, onChange: (ThemeMode) -> Unit) {
                     text = label,
                     style = AkTheme.type.label,
                     color = if (selected) colors.accent else colors.textSecondary,
+                    maxLines = 1,
                 )
             }
         }
+    }
+}
+
+private fun environmentSummary(state: AppUiState): String {
+    val cookie = if (state.cookiePath != null) "Cookie 就绪" else "Cookie 待处理"
+    val directory = if (state.settings.downloadTreeUri != null || state.hasAllFilesAccess) "目录就绪" else "目录待授权"
+    return "$cookie / $directory"
+}
+
+private fun progressMeta(state: AppUiState): String {
+    val progress = state.progress
+    return listOfNotNull(
+        progress.label.takeIf { it.isNotBlank() },
+        progress.totalBytes?.let { "${formatBytes(progress.downloadedBytes)} / ${formatBytes(it)}" },
+        progress.speedBytesPerSecond?.let { "${formatBytes(it.toLong())}/s" },
+        progress.etaSeconds?.let { "ETA ${it.toInt()}s" },
+    ).joinToString(" · ").ifBlank { "等待下载器返回进度" }
+}
+
+private fun durationLabel(seconds: Double): String {
+    val total = seconds.toInt().coerceAtLeast(0)
+    val minutes = total / 60
+    val remaining = total % 60
+    return "%d:%02d".format(Locale.US, minutes, remaining)
+}
+
+private fun formatBytes(bytes: Long): String {
+    if (bytes < 1024) return "$bytes B"
+    val units = arrayOf("KB", "MB", "GB", "TB")
+    var value = bytes.toDouble() / 1024.0
+    var index = 0
+    while (value >= 1024.0 && index < units.lastIndex) {
+        value /= 1024.0
+        index += 1
+    }
+    return if (value % 1.0 == 0.0) {
+        "${value.toInt()} ${units[index]}"
+    } else {
+        "%.1f %s".format(Locale.US, value, units[index])
     }
 }
 

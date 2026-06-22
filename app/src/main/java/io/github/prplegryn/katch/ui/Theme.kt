@@ -7,7 +7,6 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.compositionLocalOf
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -19,36 +18,33 @@ import io.github.prplegryn.katch.data.ThemeMode
 
 @Immutable
 data class AkColors(
-    val backgroundTop: Color,
-    val backgroundBottom: Color,
-    val blobOne: Color,
-    val blobTwo: Color,
-    val blobThree: Color,
+    val background: Color,
     val surface: Color,
-    val surfaceStrong: Color,
-    val surfaceSoft: Color,
+    val surfaceRaised: Color,
+    val surfaceMuted: Color,
+    val input: Color,
+    val nav: Color,
     val border: Color,
+    val divider: Color,
     val textPrimary: Color,
     val textSecondary: Color,
     val textMuted: Color,
     val accent: Color,
-    val accent2: Color,
-    val accent3: Color,
+    val accentSoft: Color,
+    val onAccent: Color,
     val success: Color,
+    val successSoft: Color,
     val warning: Color,
+    val warningSoft: Color,
     val danger: Color,
+    val dangerSoft: Color,
+    val selected: Color,
     val scrim: Color,
-) {
-    val backgroundBrush: Brush
-        get() = Brush.verticalGradient(listOf(backgroundTop, backgroundBottom))
-
-    val accentBrush: Brush
-        get() = Brush.linearGradient(listOf(accent, accent2, accent3))
-}
+)
 
 @Immutable
 data class AkType(
-    val hero: TextStyle,
+    val appTitle: TextStyle,
     val title: TextStyle,
     val section: TextStyle,
     val body: TextStyle,
@@ -60,7 +56,7 @@ data class AkType(
 
 @Immutable
 data class AkSpacing(
-    val page: Dp = 20.dp,
+    val page: Dp = 18.dp,
     val pageLarge: Dp = 28.dp,
     val xs: Dp = 4.dp,
     val sm: Dp = 8.dp,
@@ -88,47 +84,53 @@ object AkTheme {
 }
 
 private val LightColors = AkColors(
-    backgroundTop = Color(0xFFFFF7F4),
-    backgroundBottom = Color(0xFFF4F0FF),
-    blobOne = Color(0xFFFF4F72).copy(alpha = 0.34f),
-    blobTwo = Color(0xFF7C4DFF).copy(alpha = 0.28f),
-    blobThree = Color(0xFFFFB84D).copy(alpha = 0.18f),
-    surface = Color.White.copy(alpha = 0.72f),
-    surfaceStrong = Color.White.copy(alpha = 0.92f),
-    surfaceSoft = Color.White.copy(alpha = 0.52f),
-    border = Color(0xFFFFD5DD).copy(alpha = 0.82f),
-    textPrimary = Color(0xFF21161E),
-    textSecondary = Color(0xFF695B66),
-    textMuted = Color(0xFF91838D),
-    accent = Color(0xFFFF3D65),
-    accent2 = Color(0xFF7C4DFF),
-    accent3 = Color(0xFFFFB84D),
-    success = Color(0xFF138A55),
-    warning = Color(0xFFB56C00),
-    danger = Color(0xFFD7263D),
-    scrim = Color(0x990C0812),
+    background = Color(0xFFF6F7F8),
+    surface = Color(0xFFFFFFFF),
+    surfaceRaised = Color(0xFFFFFFFF),
+    surfaceMuted = Color(0xFFF0F2F4),
+    input = Color(0xFFFAFBFC),
+    nav = Color(0xFFFDFDFE),
+    border = Color(0xFFD9DEE5),
+    divider = Color(0xFFE7EAEE),
+    textPrimary = Color(0xFF171A1F),
+    textSecondary = Color(0xFF4F5966),
+    textMuted = Color(0xFF7C8694),
+    accent = Color(0xFF1F6FEB),
+    accentSoft = Color(0xFFE8F1FF),
+    onAccent = Color(0xFFFFFFFF),
+    success = Color(0xFF16824B),
+    successSoft = Color(0xFFE7F5ED),
+    warning = Color(0xFF9D6500),
+    warningSoft = Color(0xFFFFF5D8),
+    danger = Color(0xFFC5392F),
+    dangerSoft = Color(0xFFFFEBE8),
+    selected = Color(0xFFEAF2FF),
+    scrim = Color(0x99090C10),
 )
 
 private val DarkColors = AkColors(
-    backgroundTop = Color(0xFF130A1F),
-    backgroundBottom = Color(0xFF070A14),
-    blobOne = Color(0xFFFF3D65).copy(alpha = 0.30f),
-    blobTwo = Color(0xFF7C4DFF).copy(alpha = 0.32f),
-    blobThree = Color(0xFFFFB84D).copy(alpha = 0.12f),
-    surface = Color(0xFF201528).copy(alpha = 0.76f),
-    surfaceStrong = Color(0xFF2A1D34).copy(alpha = 0.94f),
-    surfaceSoft = Color(0xFF2A1D34).copy(alpha = 0.54f),
-    border = Color(0xFF5D4963).copy(alpha = 0.78f),
-    textPrimary = Color(0xFFFFF8FA),
-    textSecondary = Color(0xFFD6C6D1),
-    textMuted = Color(0xFFA997A5),
-    accent = Color(0xFFFF5578),
-    accent2 = Color(0xFFA182FF),
-    accent3 = Color(0xFFFFC46A),
-    success = Color(0xFF5BE0A4),
-    warning = Color(0xFFFFC46A),
-    danger = Color(0xFFFF6F84),
-    scrim = Color(0xCC06030A),
+    background = Color(0xFF111418),
+    surface = Color(0xFF171B20),
+    surfaceRaised = Color(0xFF1E242B),
+    surfaceMuted = Color(0xFF222932),
+    input = Color(0xFF12171D),
+    nav = Color(0xFF171B20),
+    border = Color(0xFF313A45),
+    divider = Color(0xFF252D36),
+    textPrimary = Color(0xFFF4F7FA),
+    textSecondary = Color(0xFFC2CAD4),
+    textMuted = Color(0xFF8994A2),
+    accent = Color(0xFF72A7FF),
+    accentSoft = Color(0xFF173153),
+    onAccent = Color(0xFF07111F),
+    success = Color(0xFF65D18C),
+    successSoft = Color(0xFF143422),
+    warning = Color(0xFFEBC05B),
+    warningSoft = Color(0xFF3A2D11),
+    danger = Color(0xFFFF8A7E),
+    dangerSoft = Color(0xFF3F1D1B),
+    selected = Color(0xFF162D4B),
+    scrim = Color(0xCC05070A),
 )
 
 private val LocalAkColors = compositionLocalOf { DarkColors }
@@ -147,12 +149,13 @@ fun AkatchaTheme(
     }
     val target = if (dark) DarkColors else LightColors
     val colors = target.copy(
-        backgroundTop = animateColorAsState(target.backgroundTop, label = "bgTop").value,
-        backgroundBottom = animateColorAsState(target.backgroundBottom, label = "bgBottom").value,
+        background = animateColorAsState(target.background, label = "background").value,
         surface = animateColorAsState(target.surface, label = "surface").value,
-        surfaceStrong = animateColorAsState(target.surfaceStrong, label = "surfaceStrong").value,
+        surfaceRaised = animateColorAsState(target.surfaceRaised, label = "surfaceRaised").value,
+        nav = animateColorAsState(target.nav, label = "nav").value,
         textPrimary = animateColorAsState(target.textPrimary, label = "textPrimary").value,
         textSecondary = animateColorAsState(target.textSecondary, label = "textSecondary").value,
+        accent = animateColorAsState(target.accent, label = "accent").value,
     )
     CompositionLocalProvider(
         LocalAkColors provides colors,
@@ -165,57 +168,61 @@ fun AkatchaTheme(
 private fun makeType(): AkType {
     val base = FontFamily.SansSerif
     return AkType(
-        hero = TextStyle(
+        appTitle = TextStyle(
             fontFamily = base,
-            fontWeight = FontWeight.ExtraBold,
-            fontSize = 31.sp,
-            lineHeight = 36.sp,
-            letterSpacing = (-0.5).sp,
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp,
+            lineHeight = 26.sp,
+            letterSpacing = 0.sp,
         ),
         title = TextStyle(
             fontFamily = base,
             fontWeight = FontWeight.Bold,
-            fontSize = 24.sp,
-            lineHeight = 30.sp,
-            letterSpacing = (-0.2).sp,
+            fontSize = 22.sp,
+            lineHeight = 28.sp,
+            letterSpacing = 0.sp,
         ),
         section = TextStyle(
             fontFamily = base,
             fontWeight = FontWeight.SemiBold,
-            fontSize = 18.sp,
-            lineHeight = 24.sp,
+            fontSize = 17.sp,
+            lineHeight = 23.sp,
+            letterSpacing = 0.sp,
         ),
         body = TextStyle(
             fontFamily = base,
             fontWeight = FontWeight.Normal,
             fontSize = 15.sp,
             lineHeight = 22.sp,
+            letterSpacing = 0.sp,
         ),
         bodyStrong = TextStyle(
             fontFamily = base,
             fontWeight = FontWeight.SemiBold,
             fontSize = 15.sp,
             lineHeight = 22.sp,
+            letterSpacing = 0.sp,
         ),
         label = TextStyle(
             fontFamily = base,
             fontWeight = FontWeight.SemiBold,
             fontSize = 13.sp,
             lineHeight = 18.sp,
-            letterSpacing = 0.1.sp,
+            letterSpacing = 0.sp,
         ),
         tiny = TextStyle(
             fontFamily = base,
             fontWeight = FontWeight.Medium,
             fontSize = 11.sp,
             lineHeight = 15.sp,
-            letterSpacing = 0.2.sp,
+            letterSpacing = 0.sp,
         ),
         mono = TextStyle(
             fontFamily = FontFamily.Monospace,
             fontWeight = FontWeight.Medium,
             fontSize = 12.sp,
             lineHeight = 17.sp,
+            letterSpacing = 0.sp,
         ),
     )
 }

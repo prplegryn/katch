@@ -1,17 +1,26 @@
 # Akatcha UI System
 
-The app intentionally avoids default Material component styling. Compose is used for rendering and accessibility primitives, while the visual system is custom:
+Akatcha uses a custom Jetpack Compose interface focused on a downloader workflow rather than a promotional or decorative layout.
 
-- Gradient canvas background with animated soft color fields.
-- Glass-style cards with high contrast text surfaces.
-- Custom capsule buttons, segmented controls, status pills, and bottom dock.
-- Self-drawn line icons on Canvas to keep icon weight consistent.
-- Page slide/fade transitions, animated progress, expandable status cards, animated list placement, and loading pulse states.
-- 4/8dp spacing rhythm, 48dp minimum touch targets, large Chinese-readable line heights, and adaptive max-width for tablets.
-- Light, dark, and system theme modes using semantic color tokens.
+## Direction
 
-The main hierarchy is:
+- Neutral tool palette with semantic success, warning, danger, and accent states.
+- Flat app shell with persistent header, bottom navigation, and clear page ownership.
+- Low-radius panels only for framed tools and configuration groups.
+- Format results are list rows with table-like metadata instead of independent decorative cards.
+- No animated color fields, glass surfaces, oversized hero copy, or nested cards.
+- 4/8dp spacing rhythm, 42dp+ touch targets, stable row heights, and adaptive max-width for larger screens.
+- Light, dark, and system theme modes use the same semantic tokens.
 
-- Download: link input, environment status, probe status, full format list, per-format download action.
-- Login: desktop-UA WebView with right-side cookie save action.
-- Settings: theme, output directory, cookie management, and probe strategy.
+## Main Hierarchy
+
+- Task: input source, environment readiness, probe progress, raw format list, and saved files.
+- Login: browser toolbar, desktop-UA WebView, and cookie save state.
+- Settings: appearance, output directory, cookie management, and extraction parameters.
+
+## Business Rules Reflected In UI
+
+- Cookie and storage are shown as operational prerequisites, not hidden in settings.
+- The format list keeps original order and duplicate rows visible because the downloader intentionally preserves every returned item.
+- Download progress and published files stay in the task flow so users can verify output without switching sections.
+- Login is separated from task execution, but still reachable from task readiness controls.

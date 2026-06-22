@@ -3,11 +3,7 @@ package io.github.prplegryn.katch.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -29,6 +25,7 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,18 +40,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -78,6 +72,18 @@ enum class Glyph {
     Check,
     Spark,
     Lock,
+    Link,
+    List,
+    Paste,
+    Info,
+    Storage,
+}
+
+enum class ActionTone {
+    Primary,
+    Secondary,
+    Danger,
+    Quiet,
 }
 
 @Composable
@@ -100,22 +106,49 @@ fun AkText(
 }
 
 @Composable
-fun GlassCard(
+fun WorkPanel(
     modifier: Modifier = Modifier,
-    radius: Dp = 28.dp,
-    padding: Dp = 18.dp,
-    borderAlpha: Float = 1f,
+    padding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = AkTheme.colors
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(radius))
+            .clip(RoundedCornerShape(8.dp))
             .background(colors.surface)
-            .border(1.dp, colors.border.copy(alpha = borderAlpha), RoundedCornerShape(radius))
+            .border(1.dp, colors.border, RoundedCornerShape(8.dp))
             .padding(padding),
         content = content,
     )
+}
+
+@Composable
+fun DividerLine(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(AkTheme.colors.divider),
+    )
+}
+
+@Composable
+fun SectionTitle(
+    title: String,
+    modifier: Modifier = Modifier,
+    meta: String? = null,
+) {
+    val colors = AkTheme.colors
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AkText(text = title, style = AkTheme.type.section, color = colors.textPrimary)
+        Spacer(Modifier.weight(1f))
+        if (!meta.isNullOrBlank()) {
+            AkText(text = meta, style = AkTheme.type.label, color = colors.textMuted, maxLines = 1)
+        }
+    }
 }
 
 @Composable
@@ -125,43 +158,63 @@ fun ActionButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     glyph: Glyph? = null,
-    secondary: Boolean = false,
+    tone: ActionTone = ActionTone.Primary,
 ) {
     val colors = AkTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
-    val scale by animateFloatAsState(if (enabled) 1f else 0.98f, label = "buttonScale")
-    val background = if (secondary) {
-        Brush.linearGradient(listOf(colors.surfaceStrong, colors.surfaceStrong))
-    } else {
-        colors.accentBrush
+    val background by animateColorAsState(
+        when {
+            !enabled -> colors.surfaceMuted
+            tone == ActionTone.Primary -> colors.accent
+            tone == ActionTone.Danger -> colors.dangerSoft
+            tone == ActionTone.Quiet -> Color.Transparent
+            else -> colors.surfaceRaised
+        },
+        label = "buttonBackground",
+    )
+    val border by animateColorAsState(
+        when {
+            !enabled -> colors.border
+            tone == ActionTone.Primary -> colors.accent
+            tone == ActionTone.Danger -> colors.danger
+            tone == ActionTone.Quiet -> Color.Transparent
+            else -> colors.border
+        },
+        label = "buttonBorder",
+    )
+    val contentColor = when {
+        !enabled -> colors.textMuted
+        tone == ActionTone.Primary -> colors.onAccent
+        tone == ActionTone.Danger -> colors.danger
+        else -> colors.textPrimary
     }
-    val contentColor = if (secondary) colors.textPrimary else Color.White
     Row(
         modifier = modifier
-            .defaultMinSize(minHeight = 50.dp)
-            .scale(scale)
-            .clip(RoundedCornerShape(18.dp))
-            .background(if (enabled) background else Brush.linearGradient(listOf(colors.surfaceSoft, colors.surfaceSoft)))
-            .border(
-                1.dp,
-                if (secondary) colors.border else Color.White.copy(alpha = 0.26f),
-                RoundedCornerShape(18.dp),
-            )
+            .defaultMinSize(minHeight = 44.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(background)
+            .border(1.dp, border, RoundedCornerShape(8.dp))
             .clickable(
                 enabled = enabled,
                 interactionSource = interactionSource,
                 indication = LocalIndication.current,
                 onClick = onClick,
             )
-            .padding(horizontal = 18.dp, vertical = 13.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (glyph != null) {
-            GlyphIcon(glyph = glyph, color = contentColor, size = 20.dp)
+            GlyphIcon(glyph = glyph, color = contentColor, size = 19.dp)
             Spacer(Modifier.width(8.dp))
         }
-        AkText(text = label, style = AkTheme.type.label, color = contentColor)
+        AkText(
+            text = label,
+            style = AkTheme.type.label,
+            color = contentColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -172,14 +225,15 @@ fun IconButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    selected: Boolean = false,
 ) {
     val colors = AkTheme.colors
     Box(
         modifier = modifier
-            .size(48.dp)
-            .clip(CircleShape)
-            .background(colors.surfaceStrong)
-            .border(1.dp, colors.border, CircleShape)
+            .size(42.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (selected) colors.selected else colors.surfaceRaised)
+            .border(1.dp, if (selected) colors.accent else colors.border, RoundedCornerShape(8.dp))
             .clickable(
                 enabled = enabled,
                 interactionSource = remember { MutableInteractionSource() },
@@ -189,51 +243,51 @@ fun IconButton(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        GlyphIcon(glyph = glyph, color = if (enabled) colors.textPrimary else colors.textMuted, size = 22.dp)
+        GlyphIcon(
+            glyph = glyph,
+            color = when {
+                !enabled -> colors.textMuted
+                selected -> colors.accent
+                else -> colors.textPrimary
+            },
+            size = 21.dp,
+        )
     }
 }
 
 @Composable
-fun Pill(
+fun StatusBadge(
     text: String,
     modifier: Modifier = Modifier,
-    selected: Boolean = false,
-    onClick: (() -> Unit)? = null,
+    active: Boolean = false,
+    warning: Boolean = false,
 ) {
     val colors = AkTheme.colors
-    val background by animateColorAsState(
-        if (selected) colors.accent.copy(alpha = 0.17f) else colors.surfaceSoft,
-        label = "pillBg",
-    )
-    val border by animateColorAsState(
-        if (selected) colors.accent.copy(alpha = 0.74f) else colors.border,
-        label = "pillBorder",
-    )
-    val interactionSource = remember { MutableInteractionSource() }
-    val clickable = if (onClick == null) {
-        Modifier
-    } else {
-        Modifier.clickable(
-            interactionSource = interactionSource,
-            indication = LocalIndication.current,
-            onClick = onClick,
-        )
+    val background = when {
+        active -> colors.successSoft
+        warning -> colors.warningSoft
+        else -> colors.surfaceMuted
     }
-    Box(
+    val foreground = when {
+        active -> colors.success
+        warning -> colors.warning
+        else -> colors.textSecondary
+    }
+    Row(
         modifier = modifier
             .clip(RoundedCornerShape(999.dp))
             .background(background)
-            .border(1.dp, border, RoundedCornerShape(999.dp))
-            .then(clickable)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-        contentAlignment = Alignment.Center,
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        AkText(
-            text = text,
-            style = AkTheme.type.tiny,
-            color = if (selected) colors.accent else colors.textSecondary,
-            maxLines = 1,
+        Box(
+            modifier = Modifier
+                .size(7.dp)
+                .clip(CircleShape)
+                .background(foreground),
         )
+        Spacer(Modifier.width(7.dp))
+        AkText(text = text, style = AkTheme.type.tiny, color = foreground, maxLines = 1)
     }
 }
 
@@ -259,16 +313,19 @@ fun AkTextField(
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             visualTransformation = VisualTransformation.None,
-            modifier = Modifier.fillMaxWidth(),
+            cursorBrush = SolidColor(colors.accent),
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = (minLines * 28).dp + 32.dp),
             minLines = minLines,
             decorationBox = { inner ->
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(colors.surfaceStrong)
-                        .border(1.dp, colors.border, RoundedCornerShape(22.dp))
-                        .padding(16.dp),
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(colors.input)
+                        .border(1.dp, colors.border, RoundedCornerShape(8.dp))
+                        .padding(14.dp),
                 ) {
                     if (value.isBlank()) {
                         AkText(
@@ -294,16 +351,16 @@ fun ProgressStrip(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(10.dp)
+            .height(7.dp)
             .clip(RoundedCornerShape(999.dp))
-            .background(colors.surfaceSoft),
+            .background(colors.surfaceMuted),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(animated)
                 .clip(RoundedCornerShape(999.dp))
-                .background(colors.accentBrush),
+                .background(colors.accent),
         )
     }
 }
@@ -321,61 +378,19 @@ fun AnimatedStatus(
         exit = fadeOut(tween(120)) + shrinkVertically(tween(160, easing = FastOutSlowInEasing)),
         modifier = modifier,
     ) {
-        GlassCard(radius = 20.dp, padding = 14.dp, borderAlpha = 0.72f) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(9.dp)
-                        .clip(CircleShape)
-                        .background(colors.accent),
-                )
-                Spacer(Modifier.width(10.dp))
-                AkText(text = text.orEmpty(), style = AkTheme.type.body, color = colors.textSecondary)
-            }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(colors.surfaceMuted)
+                .border(1.dp, colors.divider, RoundedCornerShape(8.dp))
+                .padding(horizontal = 13.dp, vertical = 11.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            GlyphIcon(glyph = Glyph.Info, color = colors.accent, size = 18.dp)
+            Spacer(Modifier.width(10.dp))
+            AkText(text = text.orEmpty(), style = AkTheme.type.body, color = colors.textSecondary)
         }
-    }
-}
-
-@Composable
-fun FloatingOrbs(modifier: Modifier = Modifier) {
-    val colors = AkTheme.colors
-    val transition = rememberInfiniteTransition(label = "orbs")
-    val driftOne by transition.animateFloat(
-        initialValue = -24f,
-        targetValue = 34f,
-        animationSpec = infiniteRepeatable(tween(5200, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "orbOne",
-    )
-    val driftTwo by transition.animateFloat(
-        initialValue = 28f,
-        targetValue = -30f,
-        animationSpec = infiniteRepeatable(tween(6800, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "orbTwo",
-    )
-    Box(modifier = modifier) {
-        Box(
-            Modifier
-                .size(220.dp)
-                .graphicsLayer { translationX = driftOne; translationY = driftTwo }
-                .blur(54.dp)
-                .background(colors.blobOne, CircleShape),
-        )
-        Box(
-            Modifier
-                .align(Alignment.TopEnd)
-                .size(190.dp)
-                .graphicsLayer { translationX = driftTwo; translationY = driftOne }
-                .blur(58.dp)
-                .background(colors.blobTwo, CircleShape),
-        )
-        Box(
-            Modifier
-                .align(Alignment.BottomCenter)
-                .size(260.dp)
-                .graphicsLayer { translationX = driftOne * -0.7f }
-                .blur(70.dp)
-                .background(colors.blobThree, CircleShape),
-        )
     }
 }
 
@@ -388,7 +403,7 @@ fun GlyphIcon(
 ) {
     Canvas(modifier = modifier.size(size)) {
         val stroke = Stroke(
-            width = size.minDimension.toPx() * 0.085f,
+            width = size.toPx() * 0.085f,
             cap = StrokeCap.Round,
             join = StrokeJoin.Round,
         )
@@ -412,10 +427,10 @@ fun GlyphIcon(
                 drawPath(path, color, style = stroke)
             }
             Glyph.Browser -> {
-                drawCircle(color, radius = w * 0.33f, center = p(0.5f, 0.5f), style = stroke)
+                drawCircle(color, radius = w * 0.32f, center = p(0.5f, 0.5f), style = stroke)
                 drawLine(color, p(0.2f, 0.5f), p(0.8f, 0.5f), stroke.width, StrokeCap.Round)
-                drawLine(color, p(0.5f, 0.18f), p(0.5f, 0.82f), stroke.width, StrokeCap.Round)
                 drawArc(color, 75f, 210f, false, topLeft = p(0.28f, 0.2f), size = Size(w * 0.44f, h * 0.6f), style = stroke)
+                drawArc(color, -105f, 210f, false, topLeft = p(0.28f, 0.2f), size = Size(w * 0.44f, h * 0.6f), style = stroke)
             }
             Glyph.Settings -> {
                 drawCircle(color, radius = w * 0.14f, center = p(0.5f, 0.5f), style = stroke)
@@ -436,7 +451,7 @@ fun GlyphIcon(
                 drawCircle(color, radius = w * 0.24f, center = p(0.43f, 0.43f), style = stroke)
                 drawLine(color, p(0.6f, 0.6f), p(0.82f, 0.82f), stroke.width, StrokeCap.Round)
             }
-            Glyph.Folder -> {
+            Glyph.Folder, Glyph.Storage -> {
                 val path = Path().apply {
                     moveTo(w * 0.16f, h * 0.32f)
                     lineTo(w * 0.4f, h * 0.32f)
@@ -476,10 +491,10 @@ fun GlyphIcon(
                 drawLine(color, p(0.43f, 0.72f), p(0.78f, 0.28f), stroke.width, StrokeCap.Round)
             }
             Glyph.Spark -> {
-                drawLine(color, p(0.5f, 0.14f), p(0.5f, 0.86f), stroke.width, StrokeCap.Round)
-                drawLine(color, p(0.14f, 0.5f), p(0.86f, 0.5f), stroke.width, StrokeCap.Round)
-                drawLine(color, p(0.28f, 0.28f), p(0.72f, 0.72f), stroke.width * 0.75f, StrokeCap.Round)
-                drawLine(color, p(0.72f, 0.28f), p(0.28f, 0.72f), stroke.width * 0.75f, StrokeCap.Round)
+                drawLine(color, p(0.5f, 0.18f), p(0.5f, 0.82f), stroke.width, StrokeCap.Round)
+                drawLine(color, p(0.18f, 0.5f), p(0.82f, 0.5f), stroke.width, StrokeCap.Round)
+                drawLine(color, p(0.31f, 0.31f), p(0.69f, 0.69f), stroke.width * 0.75f, StrokeCap.Round)
+                drawLine(color, p(0.69f, 0.31f), p(0.31f, 0.69f), stroke.width * 0.75f, StrokeCap.Round)
             }
             Glyph.Lock -> {
                 drawRoundRect(
@@ -490,9 +505,33 @@ fun GlyphIcon(
                 )
                 drawArc(color, 180f, 180f, false, topLeft = p(0.34f, 0.2f), size = Size(w * 0.32f, h * 0.42f), style = stroke)
             }
+            Glyph.Link -> {
+                drawArc(color, 130f, 260f, false, topLeft = p(0.12f, 0.28f), size = Size(w * 0.46f, h * 0.44f), style = stroke)
+                drawArc(color, -50f, 260f, false, topLeft = p(0.42f, 0.28f), size = Size(w * 0.46f, h * 0.44f), style = stroke)
+                drawLine(color, p(0.42f, 0.5f), p(0.58f, 0.5f), stroke.width, StrokeCap.Round)
+            }
+            Glyph.List -> {
+                repeat(3) { index ->
+                    val y = 0.3f + index * 0.2f
+                    drawCircle(color, radius = w * 0.035f, center = p(0.22f, y))
+                    drawLine(color, p(0.34f, y), p(0.82f, y), stroke.width, StrokeCap.Round)
+                }
+            }
+            Glyph.Paste -> {
+                drawRoundRect(
+                    color = color,
+                    topLeft = p(0.25f, 0.24f),
+                    size = Size(w * 0.5f, h * 0.58f),
+                    style = stroke,
+                )
+                drawLine(color, p(0.38f, 0.18f), p(0.62f, 0.18f), stroke.width, StrokeCap.Round)
+                drawLine(color, p(0.38f, 0.35f), p(0.62f, 0.35f), stroke.width, StrokeCap.Round)
+            }
+            Glyph.Info -> {
+                drawCircle(color, radius = w * 0.32f, center = p(0.5f, 0.5f), style = stroke)
+                drawLine(color, p(0.5f, 0.46f), p(0.5f, 0.68f), stroke.width, StrokeCap.Round)
+                drawCircle(color, radius = w * 0.035f, center = p(0.5f, 0.32f))
+            }
         }
     }
 }
-
-private val Dp.minDimension: Dp
-    get() = this
